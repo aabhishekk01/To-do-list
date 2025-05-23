@@ -1,1 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Unique To-Do List</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: #fff;
+  }
+
+  .todo-app {
+    background: #2a264d;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  h1 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 25px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #f9fafb;
+  }
+
+  .input-area {
+    position: relative;
+    display: flex;
+    margin-bottom: 20px;
+  }
+
+  input[type="text"] {
+    flex-grow: 1;
+    padding: 15px 20px;
+    border-radius: 50px;
+    border: none;
+    font-size: 1.1rem;
+    outline: none;
+    transition: box-shadow 0.3s ease;
+    color: #333;
+  }
+
+  input[type="text"]:focus {
+    box-shadow: 0 0 10px #8e44ad;
+  }
+
+  button.add-btn {
+    background: #8e44ad;
+    border: none;
+    color: white;
+    padding: 0 25px;
+    margin-left: 15px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.1rem;
+    box-shadow: 0 5px 15px rgba(142, 68, 173, 0.5);
+    transition: background-color 0.3s ease;
+  }
+
+  button.add-btn:hover {
+    background: #9b59b6;
+  }
+
+  ul.todo-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  ul.todo-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ul.todo-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ul.todo-list::-webkit-scrollbar-thumb {
+    background: #8e44ad;
+    border-radius: 3px;
+  }
+
+  li.todo-item {
+    background: #3e3b63;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+    user-select: none;
+    transition: transform 0.2s ease;
+  }
+
+  li.todo-item:hover {
+    transform: scale(1.02);
+  }
+
+  li.todo-item.completed .task-text {
+    text-decoration: line-through;
+    color: #9a8aad88;
+  }
+
+  .task-text {
+    flex-grow: 1;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  button.complete-btn, button.delete-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: color 0.3s ease;
+    color: #ddd;
+  }
+
+  button.complete-btn:hover {
+    color: #2ecc71;
+  }
+
+  button.delete-btn:hover {
+    color: #e74c3c;
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .todo-app {
+      padding: 20px;
+    }
+    input[type="text"] {
+      font-size: 1rem;
+      padding: 12px 15px;
+    }
+    button.add-btn {
+      padding: 0 18px;
+      font-size: 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <section class="todo-app" aria-label="Unique To-Do List Application">
+    <h1>To-Do List</h1>
+    <div class="input-area">
+      <input type="text" id="task-input" placeholder="What needs to be done?" aria-label="Task input" />
+      <button class="add-btn" id="add-btn" aria-label="Add task">+</button>
+    </div>
+    <ul class="todo-list" id="todo-list" aria-live="polite" aria-relevant="additions removals"></ul>
+  </section>
+
+<script>
+  (function(){
+    const taskInput = document.getElementById('task-input');
+    const addBtn = document.getElementById('add-btn');
+    const todoList = document.getElementById('todo-list');
+
+    // Load tasks from localStorage or empty array
+    let tasks = JSON.parse(localStorage.getItem('uniqueTodoTasks')) || [];
+
+    // Save tasks to localStorage
+    function saveTasks() {
+      localStorage.setItem('uniqueTodoTasks', JSON.stringify(tasks));
+    }
+
+    // Render tasks list
+    function renderTasks() {
+      todoList.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        if(task.completed) {
+          li.classList.add('completed');
+        }
+
+        const taskSpan = document.createElement('span');
+        taskSpan.className = 'task-text';
+        taskSpan.textContent = task.text;
+        taskSpan.setAttribute('tabindex', '0');
+        taskSpan.setAttribute('aria-label', task.completed ? task.text + ' completed' : task.text + ' not completed');
+
+        // Toggle completed on click or Enter key
+        taskSpan.addEventListener('click', () => toggleComplete(index));
+        taskSpan.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleComplete(index);
+          }
+        });
+
+        // Actions div with complete and delete buttons
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'actions';
+
+        // Complete button icon (checkbox)
+        const completeBtn = document.createElement('button');
+        completeBtn.className = 'complete-btn';
+        completeBtn.setAttribute('aria-label', 'Mark task as complete');
+        completeBtn.innerHTML = task.completed ? '✔' : '⭕';
+        completeBtn.addEventListener('click', () => toggleComplete(index));
+        completeBtn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleComplete(index);
+          }
+        });
+
+        // Delete button icon (trash)
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.setAttribute('aria-label', 'Delete task');
+        deleteBtn.innerHTML = '🗑';
+        deleteBtn.addEventListener('click', () => deleteTask(index));
+
+        actionsDiv.appendChild(completeBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        li.appendChild(taskSpan);
+        li.appendChild(actionsDiv);
+
+        todoList.appendChild(li);
+      });
+    }
+
+    // Add new task
+    function addTask() {
+      const text = taskInput.value.trim();
+      if(text === '') return;
+      tasks.push({ text, completed: false });
+      saveTasks();
+      renderTasks();
+      taskInput.value = '';
+      taskInput.focus();
+    }
+
+    // Toggle complete status
+    function toggleComplete(index) {
+      tasks[index].completed = !tasks[index].completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    // Delete task
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+      renderTasks();
+    }
+
+    // Event listeners
+    addBtn.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', (e) => {
+      if(e.key === 'Enter') addTask();
+    });
+
+    // Initial render
+    renderTasks();
+  })();
+</script>
+</body>
+</html>
